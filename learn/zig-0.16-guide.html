@@ -1,0 +1,1181 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zig 0.16 入門ノート</title><style>
+:root{--bg:#fbfaf7;--fg:#222;--mut:#6b6b66;--card:#fff;--bd:#e4e1d8;--ac:#d9730d;--code:#f4f2ec;--k:#b4308b;--s:#2a7a3b;--c:#8a8a82;--n:#1c6fb8;--ty:#8a5a00}
+@media(prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e6df;--mut:#9b9a90;--card:#1e1d16;--bd:#34322a;--ac:#f0953a;--code:#12110c;--k:#e58bc9;--s:#7fd08f;--c:#7d7c72;--n:#7db8f0;--ty:#e6b85c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 -apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+.wrap{display:grid;grid-template-columns:260px 1fr;max-width:1200px;margin:0 auto}
+nav{position:sticky;top:0;align-self:start;height:100vh;padding:28px 16px;border-right:1px solid var(--bd);overflow:auto}
+nav h1{font-size:18px;margin:0 0 4px}nav p{margin:0 0 18px;color:var(--mut);font-size:13px}
+nav a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;color:var(--fg);text-decoration:none;font-size:14px}
+nav a:hover{background:var(--code)}nav h3{font-size:12px;color:var(--mut);margin:16px 10px 4px;font-weight:600}nav a span{color:var(--ac);font-weight:700;width:1.4em}
+main{padding:36px 32px 80px;min-width:0}header{margin-bottom:36px}header h1{font-size:32px;margin:0 0 8px}header p{color:var(--mut);margin:0}
+section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:24px 26px;margin-bottom:28px}
+.kicker{color:var(--ac);font-size:13px;margin:0;font-weight:600}h2{margin:2px 0 8px;font-size:24px}.lead{margin:0 0 8px}
+ul{padding-left:1.3em}li{margin:3px 0}code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.9em}
+:not(pre)>code{background:var(--code);padding:1px 6px;border-radius:5px}
+.run{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--code);border-radius:10px;padding:10px 12px;margin:14px 0}
+.run span{font-size:12px;color:var(--mut)}.run code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap}
+button{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:7px;padding:3px 10px;cursor:pointer;font-size:12px}
+summary{cursor:pointer;color:var(--mut);font-size:14px;margin-bottom:8px}
+pre{background:var(--code);border-radius:10px;padding:16px;overflow-x:auto;margin:0;font-size:13.5px;line-height:1.6}pre code{background:none}
+.k{color:var(--k)}.s{color:var(--s)}.c{color:var(--c);font-style:italic}.n{color:var(--n)}.t{color:var(--ty)}
+@media(max-width:800px){.wrap{display:block}nav{position:static;height:auto;border:0;border-bottom:1px solid var(--bd)}main{padding:24px 16px 60px}}
+</style></head><body><div class="wrap"><nav><h1>Zig 0.16 入門ノート</h1><p>動作確認済みサンプル</p><h3>0.16 編</h3><a href="#c1"><span>1</span>Hello World と標準出力</a><a href="#c2"><span>2</span>変数・型・制御構文</a><a href="#c3"><span>3</span>エラー処理・optional・defer</a><a href="#c4"><span>4</span>アロケータとコレクション</a><a href="#c5"><span>5</span>構造体・enum・union・comptime</a><a href="#c6"><span>6</span>ファイル I/O と引数</a><a href="#c7"><span>7</span>非同期処理と並行処理</a><h3>基本文法編</h3><a href="#c8"><span>8</span>ポインタ</a><a href="#c9"><span>9</span>文字列</a><a href="#c10"><span>10</span>ファイル分割・pub・モジュール</a><a href="#c11"><span>11</span>テスト</a><a href="#c12"><span>12</span>制御構文の発展</a></nav>
+<main><header><h1>Zig 0.16 入門ノート</h1><p>Zig 0.16.0 で実行確認したコードを読みながら学びます。コードは learn/ ディレクトリの .zig ファイルと同一です。</p></header>
+<section id="c1"><p class="kicker">第 1 章 · 01_hello.zig</p><h2>Hello World と標準出力</h2>
+<p class="lead">0.16 の入口は <code>main(init: std.process.Init)</code>。I/O に必要な <code>io</code> やアロケータはここから受け取ります。</p><ul><li><code>init.io</code> が <code>Io</code> 値。外界に触れる処理にはこれを渡す</li><li><code>Io.File.stdout().writeStreamingAll(io, ...)</code> はバッファなしの最短ルート</li><li>書式付き出力は <code>Io.File.Writer</code> にバッファを渡し、<code>&amp;writer.interface</code> に <code>print</code> する</li><li>バッファ付き出力は最後に <code>flush()</code> を忘れない</li><li>旧 <code>std.io.getStdOut()</code> は存在しない</li></ul>
+<div class="run"><span>実行</span><code>zig run learn/01_hello.zig</code><button data-copy="zig run learn/01_hello.zig">コピー</button></div>
+<details open><summary>ソースコード全文(01_hello.zig)</summary><pre><code class="zig">//! 第 1 章: Hello, World と標準出力
+//!
+//! 実行: zig run learn/01_hello.zig
+//!
+//! 0.16 のポイント
+//!   - main は `std.process.Init` を受け取れる(通称 Juicy Main)
+//!   - I/O は暗黙のグローバルではなく、`Io` 値を明示的に渡して行う
+//!   - `init.io` が実行環境から渡される `Io`、`init.gpa` / `init.arena` がアロケータ
+//!   - 0.15 以前の `std.io.getStdOut()` は存在しない
+
+const std = @import(&quot;std&quot;);
+const Io = std.Io;
+
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+
+    // 1. 一番簡単な方法: バッファなしで書き込む
+    try Io.File.stdout().writeStreamingAll(io, &quot;hello world!\n&quot;);
+
+    // 2. 書式付き出力: バッファ付きの Writer を作る
+    var buffer: [1024]u8 = undefined;
+    var stdout_writer: Io.File.Writer = .init(.stdout(), io, &amp;buffer);
+    const out = &amp;stdout_writer.interface;
+
+    try out.print(&quot;{s} から {d} 回挨拶します\n&quot;, .{ &quot;Zig 0.16&quot;, 3 });
+    for (0..3) |i| {
+        try out.print(&quot;  挨拶 {d}\n&quot;, .{i + 1});
+    }
+
+    // バッファに溜まった分は flush しないと出力されない(忘れがち)
+    try out.flush();
+
+    // 3. デバッグ用: stderr に書く。Io 不要で手軽
+    std.debug.print(&quot;これは stderr です\n&quot;, .{});
+}
+</code></pre></details></section><section id="c2"><p class="kicker">第 2 章 · 02_basics.zig</p><h2>変数・型・制御構文</h2>
+<p class="lead">各例は <code>test</code> ブロックで書かれています。値を書き換えてテストが失敗する様子も試してください。</p><ul><li>基本は <code>const</code>。再代入が要るときだけ <code>var</code></li><li>整数オーバーフローは Debug で panic。ラップさせるなら <code>+%</code></li><li>型変換は <code>@intCast</code> などで明示する</li><li><code>if</code> / <code>switch</code> / ブロックは式として値を返せる</li><li><code>switch</code> は網羅性が必須(<code>else</code> か全列挙)</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/02_basics.zig</code><button data-copy="zig test learn/02_basics.zig">コピー</button></div>
+<details open><summary>ソースコード全文(02_basics.zig)</summary><pre><code class="zig">//! 第 2 章: 変数・型・制御構文
+//!
+//! 実行: zig test learn/02_basics.zig
+//! このファイルは `test` ブロックで動作を確認します。
+//! 値を変えて、テストが失敗するのを試してみましょう。
+
+const std = @import(&quot;std&quot;);
+const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
+const expectEqualStrings = std.testing.expectEqualStrings;
+
+test &quot;const と var&quot; {
+    const a = 10; // 変更不可。基本は const を使う
+    var b: i32 = 20; // 変更可能。型を指定
+    b += a;
+    try expectEqual(30, b);
+
+    // 未使用の変数・ローカル const はコンパイルエラーになる。
+    // 意図的に使わないときは `_ = x;` と書く。
+}
+
+test &quot;整数・浮動小数点・bool&quot; {
+    const x: u8 = 255;
+    // オーバーフローは Debug では panic。ラップさせたいときは専用演算子 +% を使う
+    try expectEqual(0, x +% 1);
+
+    const y: f64 = 1.5;
+    try expectEqual(3.0, y * 2);
+
+    const flag: bool = x &gt; 100 and y &lt; 2;
+    try expect(flag);
+
+    // 型変換は明示的に。@as, @intCast, @floatFromInt などを使う
+    const big: i64 = 1000;
+    const small: i16 = @intCast(big);
+    try expectEqual(1000, small);
+}
+
+test &quot;配列とスライス&quot; {
+    const arr = [_]i32{ 1, 2, 3, 4, 5 }; // 長さはコンパイル時に決まる
+    try expectEqual(5, arr.len);
+
+    const slice: []const i32 = arr[1..4]; // 部分列(ポインタ + 長さ)
+    try expectEqual(3, slice.len);
+    try expectEqual(2, slice[0]);
+
+    // 文字列は []const u8 (UTF-8 のバイト列)。&quot;日本語&quot; は 1 文字 3 バイト
+    const s = &quot;日本語&quot;;
+    try expectEqual(9, s.len);
+}
+
+test &quot;if / while / for&quot; {
+    // if は式。値を返せる
+    const n = 7;
+    const kind = if (n % 2 == 0) &quot;偶数&quot; else &quot;奇数&quot;;
+    try expectEqualStrings(&quot;奇数&quot;, kind);
+
+    // while: 継続式 (: (i += 1)) を持てる
+    var i: u32 = 0;
+    var sum: u32 = 0;
+    while (i &lt; 5) : (i += 1) {
+        sum += i;
+    }
+    try expectEqual(10, sum);
+
+    // for: 要素と添字を同時に回す
+    const items = [_]u32{ 10, 20, 30 };
+    var total: u32 = 0;
+    for (items, 0..) |item, idx| {
+        total += item * @as(u32, @intCast(idx));
+    }
+    try expectEqual(80, total); // 0*10 + 1*20 + 2*30
+
+    // 範囲のみ: 0..3 は 0,1,2
+    var count: usize = 0;
+    for (0..3) |_| count += 1;
+    try expectEqual(3, count);
+}
+
+test &quot;switch は網羅性が必須&quot; {
+    const score: u8 = 85;
+    const grade = switch (score) {
+        90...100 =&gt; &#x27;A&#x27;,
+        80...89 =&gt; &#x27;B&#x27;,
+        70...79 =&gt; &#x27;C&#x27;,
+        else =&gt; &#x27;D&#x27;, // 全ての値を網羅しないとコンパイルエラー
+    };
+    try expectEqual(&#x27;B&#x27;, grade);
+}
+
+test &quot;ラベル付きブロックと break&quot; {
+    const v = blk: {
+        var acc: u32 = 1;
+        for (1..5) |k| acc *= @intCast(k);
+        break :blk acc;
+    };
+    try expectEqual(24, v);
+}
+
+fn add(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+test &quot;関数&quot; {
+    try expectEqual(5, add(2, 3));
+}
+</code></pre></details></section><section id="c3"><p class="kicker">第 3 章 · 03_errors.zig</p><h2>エラー処理・optional・defer</h2>
+<p class="lead">Zig に例外はありません。失敗は <code>!T</code>(error union)、不在は <code>?T</code>(optional)という値で表します。</p><ul><li><code>try</code> はエラーなら呼び出し元へそのまま返す</li><li><code>catch</code> で既定値に置換、または <code>|err|</code> で分岐</li><li><code>orelse</code> で optional の既定値、<code>.?</code> は null なら panic</li><li><code>defer</code> はスコープ終了時に逆順で実行</li><li><code>errdefer</code> はエラーで抜けるときだけ実行(失敗時の後始末)</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/03_errors.zig</code><button data-copy="zig test learn/03_errors.zig">コピー</button></div>
+<details open><summary>ソースコード全文(03_errors.zig)</summary><pre><code class="zig">//! 第 3 章: エラー処理・Optional・defer
+//!
+//! 実行: zig test learn/03_errors.zig
+//!
+//! Zig には例外がありません。失敗は「値」として扱います。
+//!   - `!T`  : エラーまたは T (error union)
+//!   - `?T`  : null または T (optional)
+
+const std = @import(&quot;std&quot;);
+const expect = std.testing.expect;
+const expectEqual = std.testing.expectEqual;
+const expectError = std.testing.expectError;
+
+const DivError = error{DivideByZero};
+
+fn divide(a: i32, b: i32) DivError!i32 {
+    if (b == 0) return error.DivideByZero;
+    return @divTrunc(a, b);
+}
+
+test &quot;try / catch&quot; {
+    try expectEqual(3, try divide(9, 3));
+    try expectError(error.DivideByZero, divide(1, 0));
+
+    // catch でデフォルト値に置き換える
+    const r = divide(1, 0) catch -1;
+    try expectEqual(-1, r);
+
+    // エラーごとに処理を分ける
+    const msg = if (divide(1, 0)) |_| &quot;ok&quot; else |err| switch (err) {
+        error.DivideByZero =&gt; &quot;0 で割れません&quot;,
+    };
+    try std.testing.expectEqualStrings(&quot;0 で割れません&quot;, msg);
+}
+
+fn calc(a: i32, b: i32) !i32 {
+    // try は「エラーならそのまま呼び出し元へ返す」の略記
+    const q = try divide(a, b);
+    return q + 1;
+}
+
+test &quot;エラーの伝播&quot; {
+    try expectEqual(4, try calc(9, 3));
+    try expectError(error.DivideByZero, calc(9, 0));
+}
+
+fn findIndex(items: []const i32, target: i32) ?usize {
+    for (items, 0..) |item, i| {
+        if (item == target) return i;
+    }
+    return null;
+}
+
+test &quot;optional&quot; {
+    const items = [_]i32{ 5, 6, 7 };
+
+    // if でアンラップ
+    if (findIndex(&amp;items, 6)) |idx| {
+        try expectEqual(1, idx);
+    } else {
+        return error.TestUnexpectedResult;
+    }
+
+    // orelse でデフォルト値
+    try expectEqual(0, findIndex(&amp;items, 99) orelse 0);
+
+    // .? は null なら panic(確実に非 null と分かっているときだけ)
+    try expectEqual(2, findIndex(&amp;items, 7).?);
+}
+
+test &quot;defer と errdefer&quot; {
+    var log: [3]u8 = undefined;
+    var n: usize = 0;
+
+    {
+        // defer はスコープを抜けるときに(逆順で)実行される
+        defer {
+            log[n] = &#x27;C&#x27;;
+            n += 1;
+        }
+        defer {
+            log[n] = &#x27;B&#x27;;
+            n += 1;
+        }
+        log[n] = &#x27;A&#x27;;
+        n += 1;
+    }
+    try std.testing.expectEqualStrings(&quot;ABC&quot;, &amp;log);
+}
+
+var cleaned_up = false;
+
+fn mayFail(fail: bool) !void {
+    // errdefer はエラーで関数を抜けるときだけ実行される。
+    // 確保したリソースを失敗時に解放する用途で使う。
+    errdefer cleaned_up = true;
+    if (fail) return error.Oops;
+}
+
+test &quot;errdefer&quot; {
+    cleaned_up = false;
+    try mayFail(false);
+    try expect(!cleaned_up);
+
+    try expectError(error.Oops, mayFail(true));
+    try expect(cleaned_up);
+}
+</code></pre></details></section><section id="c4"><p class="kicker">第 4 章 · 04_memory.zig</p><h2>アロケータとコレクション</h2>
+<p class="lead">グローバルなメモリ確保はありません。確保する関数はアロケータを引数に取り、解放責任は呼び出し側にあります。</p><ul><li>テストでは <code>std.testing.allocator</code> がリークを自動検出</li><li><code>ArrayList</code> は <code>.empty</code> で初期化し、<code>append(gpa, x)</code> と都度アロケータを渡す</li><li><code>ArenaAllocator</code> は <code>deinit</code> で一括解放</li><li><code>FixedBufferAllocator</code> はヒープを使わず、足りなければ <code>OutOfMemory</code></li><li>アプリでは <code>init.gpa</code> / <code>init.arena</code> を使う</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/04_memory.zig</code><button data-copy="zig test learn/04_memory.zig">コピー</button></div>
+<details open><summary>ソースコード全文(04_memory.zig)</summary><pre><code class="zig">//! 第 4 章: アロケータとコレクション
+//!
+//! 実行: zig test learn/04_memory.zig
+//!
+//! Zig にはグローバルなメモリ確保がありません。確保が必要な関数は
+//! `std.mem.Allocator` を引数で受け取り、呼び出し側が解放の責任を持ちます。
+//!
+//! 0.16 のポイント
+//!   - ArrayList は「アロケータを保持しない」形(`.empty` で初期化)が標準。
+//!     append / deinit のたびにアロケータを渡す。
+//!   - テストでは `std.testing.allocator` を使うとリークを自動検出してくれる。
+//!   - アプリでは `init.gpa`(汎用)や `init.arena`(一括解放)が渡される。
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+const expectEqual = testing.expectEqual;
+
+test &quot;alloc / free&quot; {
+    const gpa = testing.allocator;
+
+    const buf = try gpa.alloc(u8, 4);
+    defer gpa.free(buf); // コメントアウトするとリークとして検出される
+    @memset(buf, &#x27;z&#x27;);
+    try testing.expectEqualStrings(&quot;zzzz&quot;, buf);
+
+    // 1 個だけ確保するなら create / destroy
+    const p = try gpa.create(i32);
+    defer gpa.destroy(p);
+    p.* = 42;
+    try expectEqual(42, p.*);
+}
+
+test &quot;ArrayList&quot; {
+    const gpa = testing.allocator;
+
+    var list: std.ArrayList(i32) = .empty;
+    defer list.deinit(gpa);
+
+    try list.append(gpa, 1);
+    try list.append(gpa, 2);
+    try list.appendSlice(gpa, &amp;.{ 3, 4 });
+
+    try expectEqual(4, list.items.len);
+    try expectEqual(3, list.items[2]);
+    try expectEqual(4, list.pop()); // 0.16 では ?T を返す
+}
+
+test &quot;HashMap&quot; {
+    const gpa = testing.allocator;
+
+    var map: std.StringHashMapUnmanaged(u32) = .empty;
+    defer map.deinit(gpa);
+
+    try map.put(gpa, &quot;apple&quot;, 3);
+    try map.put(gpa, &quot;banana&quot;, 5);
+
+    try expectEqual(3, map.get(&quot;apple&quot;).?);
+    try expectEqual(null, map.get(&quot;cherry&quot;));
+    try expectEqual(2, map.count());
+}
+
+test &quot;ArenaAllocator は一括解放&quot; {
+    // arena は個別の free が不要。deinit で全てまとめて解放する。
+    // リクエスト単位・コマンド単位の処理など、寿命が揃うデータに向く。
+    var arena: std.heap.ArenaAllocator = .init(testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    const x = try a.alloc(u8, 100);
+    const y = try a.dupe(u8, &quot;hello&quot;);
+    _ = x;
+    try testing.expectEqualStrings(&quot;hello&quot;, y);
+    // free を呼ばなくてもリークにならない
+}
+
+test &quot;FixedBufferAllocator はスタック上で完結&quot; {
+    var storage: [16]u8 = undefined;
+    var fba: std.heap.FixedBufferAllocator = .init(&amp;storage);
+    const a = fba.allocator();
+
+    _ = try a.alloc(u8, 10);
+    try testing.expectError(error.OutOfMemory, a.alloc(u8, 10));
+}
+
+test &quot;std.fmt で文字列を作る&quot; {
+    const gpa = testing.allocator;
+    const s = try std.fmt.allocPrint(gpa, &quot;{s}-{d}&quot;, .{ &quot;id&quot;, 7 });
+    defer gpa.free(s);
+    try testing.expectEqualStrings(&quot;id-7&quot;, s);
+
+    // バッファを渡す版ならアロケータ不要
+    var buf: [16]u8 = undefined;
+    const t = try std.fmt.bufPrint(&amp;buf, &quot;{x}&quot;, .{255});
+    try testing.expectEqualStrings(&quot;ff&quot;, t);
+}
+</code></pre></details></section><section id="c5"><p class="kicker">第 5 章 · 05_types.zig</p><h2>構造体・enum・union・comptime</h2>
+<p class="lead">ジェネリクスは「型を受け取って型を返す関数」で表現します。特別な構文はありません。</p><ul><li><code>struct</code> 内の関数はメソッド。<code>self</code> を取れば <code>p.length()</code> と呼べる</li><li><code>union(enum)</code> は <code>switch</code> で安全に取り出す</li><li><code>fn Pair(comptime T: type) type</code> がジェネリック型の基本形</li><li><code>comptime</code> を付けるとコンパイル時に評価</li><li>0.16 では <code>@Type</code> が廃止され <code>@Int</code> などに置き換え</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/05_types.zig</code><button data-copy="zig test learn/05_types.zig">コピー</button></div>
+<details open><summary>ソースコード全文(05_types.zig)</summary><pre><code class="zig">//! 第 5 章: 構造体・enum・union・comptime
+//!
+//! 実行: zig test learn/05_types.zig
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+const expectEqual = testing.expectEqual;
+
+// ---- struct ----
+const Point = struct {
+    x: f32,
+    y: f32 = 0, // デフォルト値
+
+    // 構造体の中の関数 = メソッド。第 1 引数が self なら `p.length()` で呼べる
+    fn length(self: Point) f32 {
+        return @sqrt(self.x * self.x + self.y * self.y);
+    }
+
+    fn scale(self: *Point, k: f32) void {
+        self.x *= k;
+        self.y *= k;
+    }
+};
+
+test &quot;struct&quot; {
+    var p: Point = .{ .x = 3, .y = 4 }; // 型は左辺から推論される
+    try expectEqual(5, p.length());
+    p.scale(2);
+    try expectEqual(10, p.length());
+
+    const q: Point = .{ .x = 1 };
+    try expectEqual(0, q.y);
+}
+
+// ---- enum ----
+const Color = enum {
+    red,
+    green,
+    blue,
+
+    fn isWarm(self: Color) bool {
+        return self == .red;
+    }
+};
+
+test &quot;enum&quot; {
+    const c: Color = .red;
+    try testing.expect(c.isWarm());
+    try testing.expectEqualStrings(&quot;blue&quot;, @tagName(Color.blue));
+}
+
+// ---- tagged union ----
+const Shape = union(enum) {
+    circle: f32, // 半径
+    rect: struct { w: f32, h: f32 },
+
+    fn area(self: Shape) f32 {
+        return switch (self) {
+            .circle =&gt; |r| std.math.pi * r * r,
+            .rect =&gt; |r| r.w * r.h,
+        };
+    }
+};
+
+test &quot;tagged union&quot; {
+    const s: Shape = .{ .rect = .{ .w = 2, .h = 3 } };
+    try expectEqual(6, s.area());
+    const c: Shape = .{ .circle = 1 };
+    try testing.expectApproxEqAbs(3.14159, c.area(), 0.001);
+}
+
+// ---- comptime とジェネリクス ----
+// Zig のジェネリクスは「型を受け取って型を返す関数」で表現する
+fn Pair(comptime T: type) type {
+    return struct {
+        a: T,
+        b: T,
+
+        const Self = @This();
+
+        fn swap(self: Self) Self {
+            return .{ .a = self.b, .b = self.a };
+        }
+    };
+}
+
+test &quot;ジェネリックな型&quot; {
+    const p: Pair(i32) = .{ .a = 1, .b = 2 };
+    try expectEqual(2, p.swap().a);
+
+    const s: Pair([]const u8) = .{ .a = &quot;x&quot;, .b = &quot;y&quot; };
+    try testing.expectEqualStrings(&quot;y&quot;, s.swap().a);
+}
+
+// anytype: 引数の型を呼び出し側から受け取る(コンパイル時に具体化される)
+fn double(x: anytype) @TypeOf(x) {
+    return x * 2;
+}
+
+test &quot;anytype&quot; {
+    try expectEqual(4, double(@as(i32, 2)));
+    try expectEqual(5.0, double(@as(f64, 2.5)));
+}
+
+// comptime: コンパイル時に実行される計算
+fn fib(n: u32) u32 {
+    return if (n &lt; 2) n else fib(n - 1) + fib(n - 2);
+}
+
+test &quot;comptime&quot; {
+    const v = comptime fib(10); // コンパイル時に計算済み
+    try expectEqual(55, v);
+
+    // 0.16 では @Type が廃止され、@Int / @Struct などの専用組み込み関数になった
+    const U12 = @Int(.unsigned, 12);
+    try expectEqual(12, @bitSizeOf(U12));
+}
+</code></pre></details></section><section id="c6"><p class="kicker">第 6 章 · 06_file_io.zig</p><h2>ファイル I/O と引数</h2>
+<p class="lead">0.16 最大の変更点。ファイルや環境など外界に触れる操作は、すべて <code>io</code> を受け取ります。</p><ul><li><code>std.fs.cwd()</code> → <code>Io.Dir.cwd()</code></li><li><code>cwd.writeFile(io, .{ .sub_path, .data })</code> で書き込み</li><li><code>cwd.readFileAlloc(io, path, gpa, .limited(n))</code> で読み込み。上限超過は <code>StreamTooLong</code></li><li>引数は <code>init.minimal.args.toSlice(...)</code>、環境変数は <code>init.environ_map</code></li><li><code>openFile</code> の失敗は <code>error.FileNotFound</code> などで分岐できる</li></ul>
+<div class="run"><span>実行</span><code>zig run learn/06_file_io.zig -- foo bar</code><button data-copy="zig run learn/06_file_io.zig -- foo bar">コピー</button></div>
+<details open><summary>ソースコード全文(06_file_io.zig)</summary><pre><code class="zig">//! 第 6 章: ファイル I/O とコマンドライン引数
+//!
+//! 実行: zig run learn/06_file_io.zig -- foo bar
+//!
+//! 0.16 の最大の変更点。ファイル、時計、プロセスなど外界に触れる操作は
+//! すべて `Io` 値を受け取ります。旧 `std.fs.cwd()` は `std.Io.Dir.cwd()` に、
+//! ファイル操作のメソッドは第 1 引数に `io` を取る形に変わりました。
+
+const std = @import(&quot;std&quot;);
+const Io = std.Io;
+
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const gpa = init.gpa;
+
+    var stdout_buf: [1024]u8 = undefined;
+    var stdout_writer: Io.File.Writer = .init(.stdout(), io, &amp;stdout_buf);
+    const out = &amp;stdout_writer.interface;
+
+    // ---- コマンドライン引数 ----
+    // arena は main の終わりまで生きる。ここで確保したものは解放不要
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
+    for (args, 0..) |arg, i| {
+        try out.print(&quot;args[{d}] = {s}\n&quot;, .{ i, arg });
+    }
+
+    // ---- 環境変数 ----
+    // 0.16 では環境変数もグローバル関数ではなく init 経由
+    if (init.environ_map.get(&quot;HOME&quot;)) |home| {
+        try out.print(&quot;HOME = {s}\n&quot;, .{home});
+    }
+
+    // ---- 書き込み ----
+    const cwd = Io.Dir.cwd();
+    const path = &quot;.zig-cache/learn_06_sample.txt&quot;;
+
+    try cwd.writeFile(io, .{
+        .sub_path = path,
+        .data = &quot;1 行目\n2 行目\n3 行目\n&quot;,
+    });
+
+    // ---- まとめて読み込み ----
+    // 第 5 引数は読み込む上限サイズ。超えると error.StreamTooLong
+    const content = try cwd.readFileAlloc(io, path, gpa, .limited(1024));
+    defer gpa.free(content);
+    try out.print(&quot;読み込んだ: {d} バイト\n&quot;, .{content.len});
+
+    // ---- 行ごとに処理 ----
+    var lines = std.mem.splitScalar(u8, content, &#x27;\n&#x27;);
+    var n: usize = 0;
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        n += 1;
+        try out.print(&quot;  {d}: {s}\n&quot;, .{ n, line });
+    }
+
+    // ---- 存在しないファイルのエラー処理 ----
+    if (cwd.openFile(io, &quot;no_such_file.txt&quot;, .{})) |file| {
+        file.close(io);
+    } else |err| switch (err) {
+        error.FileNotFound =&gt; try out.print(&quot;no_such_file.txt は無い\n&quot;, .{}),
+        else =&gt; return err,
+    }
+
+    try cwd.deleteFile(io, path);
+    try out.flush();
+}
+</code></pre></details></section><section id="c7"><p class="kicker">第 7 章 · 07_concurrency.zig</p><h2>非同期処理と並行処理</h2>
+<p class="lead"><code>Io</code> が async を提供します。どの実装(スレッドプール等)で動くかは呼び出し側が決め、関数側は <code>io</code> を受け取るだけです。</p><ul><li><code>io.async(f, .{args})</code> と <code>future.await(io)</code></li><li><code>io.concurrent</code> は本当に並行実行することを要求</li><li><code>Io.Group</code> で複数タスクをまとめて待つ。<code>defer group.cancel(io)</code> で後始末</li><li><code>io.sleep(.fromMilliseconds(n), .awake)</code> で待機</li><li>この例では 0.1 秒の処理 2 つが合計約 105ms で終わる</li></ul>
+<div class="run"><span>実行</span><code>zig run learn/07_concurrency.zig</code><button data-copy="zig run learn/07_concurrency.zig">コピー</button></div>
+<details open><summary>ソースコード全文(07_concurrency.zig)</summary><pre><code class="zig">//! 第 7 章: 非同期処理と並行処理(std.Io の本領)
+//!
+//! 実行: zig run learn/07_concurrency.zig
+//!
+//! 0.16 では「関数に色が付かない」async を `Io` が提供します。
+//!   - `io.async(f, .{args})`     : f を非同期に呼ぶ。await で結果を受け取る。
+//!                                  Io の実装次第で、その場で逐次実行されることもある。
+//!   - `io.concurrent(f, .{args})`: 本当に並行実行することを要求する。
+//!   - `Io.Group`                 : 複数のタスクをまとめて待つ。
+//! どの実装(スレッドプール等)で動かすかは main を呼ぶ側が決めており、
+//! 呼び出されるコードは `io` を受け取るだけで済みます。
+
+const std = @import(&quot;std&quot;);
+const Io = std.Io;
+
+fn slowAdd(io: Io, a: i32, b: i32) i32 {
+    io.sleep(.fromMilliseconds(100), .awake) catch {};
+    return a + b;
+}
+
+fn worker(io: Io, name: []const u8, ms: i64) void {
+    io.sleep(.fromMilliseconds(ms), .awake) catch return;
+    std.debug.print(&quot;  {s} 完了 ({d}ms)\n&quot;, .{ name, ms });
+}
+
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+
+    // ---- async / await ----
+    std.debug.print(&quot;[async / await]\n&quot;, .{});
+    const t0 = Io.Clock.awake.now(io);
+
+    var f1 = io.async(slowAdd, .{ io, 1, 2 });
+    var f2 = io.async(slowAdd, .{ io, 10, 20 });
+    const r1 = f1.await(io);
+    const r2 = f2.await(io);
+
+    const elapsed = t0.untilNow(io, .awake);
+    std.debug.print(&quot;  結果: {d}, {d} / 経過 {d}ms\n&quot;, .{
+        r1, r2, elapsed.toMilliseconds(),
+    });
+
+    // ---- Group: 複数タスクをまとめて待つ ----
+    std.debug.print(&quot;[Group]\n&quot;, .{});
+    var group: Io.Group = .init;
+    defer group.cancel(io); // 途中でエラー終了しても確実に後始末する
+    group.async(io, worker, .{ io, &quot;A&quot;, 300 });
+    group.async(io, worker, .{ io, &quot;B&quot;, 100 });
+    group.async(io, worker, .{ io, &quot;C&quot;, 200 });
+    try group.await(io);
+    std.debug.print(&quot;  全タスク完了\n&quot;, .{});
+}
+</code></pre></details></section><section id="c8"><p class="kicker">第 8 章 · 08_pointers.zig</p><h2>ポインタ</h2>
+<p class="lead">Zig のポインタは種類ごとに型が分かれています。<code>*T</code>(単一)、<code>[*]T</code>(長さ不明)、<code>[]T</code>(スライス)、<code>?*T</code>(null 可)。</p><ul><li><code>&amp;x</code> でアドレス、<code>p.*</code> で参照先</li><li>引数は常に値渡し。変更させたいときはポインタを渡す</li><li><code>for (buf) |*b|</code> で要素のポインタを受け取り書き換える</li><li><code>*T</code> は null になれず、null を許すなら <code>?*T</code></li><li>連結リストなど、ポインタの実用例も収録</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/08_pointers.zig</code><button data-copy="zig test learn/08_pointers.zig">コピー</button></div>
+<details open><summary>ソースコード全文(08_pointers.zig)</summary><pre><code class="zig">//! 第 8 章(基本文法編): ポインタ
+//!
+//! 実行: zig test learn/08_pointers.zig
+//!
+//! Zig のポインタは種類ごとに型が分かれています。
+//!   *T         単一要素へのポインタ(演算不可)
+//!   [*]T       複数要素へのポインタ(長さ不明、Cの配列ポインタ相当)
+//!   []T        スライス(ポインタ + 長さ)。普段はこれを使う
+//!   *const T   読み取り専用
+//!   ?*T        null になりうるポインタ
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+const expectEqual = testing.expectEqual;
+
+test &quot;単一要素ポインタ&quot; {
+    var x: i32 = 10;
+    const p: *i32 = &amp;x; // &amp; でアドレスを取る
+    p.* = 20; // .* で参照先へアクセス
+    try expectEqual(20, x);
+}
+
+fn increment(n: *u32) void {
+    n.* += 1;
+}
+
+test &quot;参照渡し&quot; {
+    // 引数は常に値渡し。変更させたいときはポインタを渡す
+    var count: u32 = 0;
+    increment(&amp;count);
+    increment(&amp;count);
+    try expectEqual(2, count);
+}
+
+test &quot;const ポインタ&quot; {
+    const x: i32 = 5;
+    const p: *const i32 = &amp;x;
+    try expectEqual(5, p.*);
+    // p.* = 6; // コンパイルエラー: const への書き込み
+}
+
+test &quot;配列へのポインタとスライス&quot; {
+    var arr = [_]u8{ 1, 2, 3, 4 };
+
+    // 配列へのポインタ(*[4]u8)はスライスに自動で変換される
+    const slice: []u8 = &amp;arr;
+    slice[0] = 100;
+    try expectEqual(100, arr[0]);
+
+    // スライスの一部を取る
+    const mid = arr[1..3];
+    try expectEqual(2, mid.len);
+    try expectEqual(@as(usize, 4), arr.len);
+
+    // スライスの要素のポインタ
+    const first: *u8 = &amp;slice[0];
+    first.* = 7;
+    try expectEqual(7, arr[0]);
+}
+
+fn fill(buf: []u8, value: u8) void {
+    // スライスは参照の一種。要素の書き換えは呼び出し元にも見える
+    for (buf) |*b| b.* = value; // |*b| で要素のポインタを受け取る
+}
+
+test &quot;for で要素を書き換える&quot; {
+    var arr = [_]u8{ 0, 0, 0 };
+    fill(&amp;arr, 9);
+    try testing.expectEqualSlices(u8, &amp;.{ 9, 9, 9 }, &amp;arr);
+}
+
+test &quot;optional ポインタ&quot; {
+    var value: i32 = 1;
+    var maybe: ?*i32 = null;
+    try expectEqual(null, maybe);
+
+    maybe = &amp;value;
+    if (maybe) |p| p.* += 1;
+    try expectEqual(2, value);
+    // ?*T は null を表現でき、C のように「うっかり null」にならない。
+    // *T は null になれない。
+}
+
+const Node = struct {
+    value: i32,
+    next: ?*Node = null,
+};
+
+test &quot;連結リスト(ポインタの実用例)&quot; {
+    var c: Node = .{ .value = 3 };
+    var b: Node = .{ .value = 2, .next = &amp;c };
+    var a: Node = .{ .value = 1, .next = &amp;b };
+    _ = .{ &amp;a, &amp;b, &amp;c };
+
+    var sum: i32 = 0;
+    var cur: ?*Node = &amp;a;
+    while (cur) |node| : (cur = node.next) {
+        sum += node.value;
+    }
+    try expectEqual(6, sum);
+}
+
+test &quot;ポインタキャストは明示的に&quot; {
+    var x: u32 = 0x01020304;
+    const bytes: *[4]u8 = @ptrCast(&amp;x);
+    // ネイティブのエンディアンに依存する。確認するだけで値は固定しない
+    try expectEqual(4, bytes.len);
+}
+</code></pre></details></section><section id="c9"><p class="kicker">第 9 章 · 09_strings.zig</p><h2>文字列</h2>
+<p class="lead">Zig に文字列型はなく、UTF-8 のバイト列 <code>[]const u8</code> で表します。<code>len</code> はバイト数です。</p><ul><li>比較は <code>==</code> ではなく <code>std.mem.eql</code></li><li>検索・分割・トリムは <code>std.mem</code> の関数</li><li>コンパイル時は <code>++</code>、実行時の連結はアロケータ付きの <code>mem.concat</code> / <code>mem.join</code></li><li>数値変換は <code>std.fmt.parseInt</code> / <code>parseFloat</code></li><li>複数行リテラルは <code>\\</code> で始める</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/09_strings.zig</code><button data-copy="zig test learn/09_strings.zig">コピー</button></div>
+<details open><summary>ソースコード全文(09_strings.zig)</summary><pre><code class="zig">//! 第 9 章(基本文法編): 文字列
+//!
+//! 実行: zig test learn/09_strings.zig
+//!
+//! Zig に文字列型はなく、文字列は UTF-8 のバイト列 `[]const u8` です。
+//! リテラル &quot;abc&quot; の型は `*const [3:0]u8`(末尾に 0 が付く配列へのポインタ)で、
+//! `[]const u8` に自動変換されます。
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+const mem = std.mem;
+const expectEqual = testing.expectEqual;
+const expectEqualStrings = testing.expectEqualStrings;
+
+test &quot;文字列はバイト列&quot; {
+    const s = &quot;Zig&quot;;
+    try expectEqual(3, s.len);
+    try expectEqual(&#x27;Z&#x27;, s[0]); // 要素は u8
+    try expectEqual(0, s[s.len]); // 番兵(0 終端)があるので添字 len も読める
+
+    // 日本語は 1 文字 3 バイト。len は文字数ではなくバイト数
+    try expectEqual(9, &quot;日本語&quot;.len);
+}
+
+test &quot;比較は == ではなく mem.eql&quot; {
+    const a = &quot;hello&quot;;
+    const b: []const u8 = &quot;hello&quot;;
+    // `a == b` はスライス同士なのでコンパイルエラー。中身の比較は mem.eql
+    try testing.expect(mem.eql(u8, a, b));
+    try expectEqualStrings(&quot;hello&quot;, b); // テストでは expectEqualStrings が便利
+}
+
+test &quot;検索・判定&quot; {
+    const s = &quot;hello, world&quot;;
+    try expectEqual(7, mem.indexOf(u8, s, &quot;world&quot;).?);
+    try expectEqual(4, mem.indexOfScalar(u8, s, &#x27;o&#x27;).?);
+    try testing.expect(mem.startsWith(u8, s, &quot;hello&quot;));
+    try testing.expect(mem.endsWith(u8, s, &quot;world&quot;));
+    try testing.expect(mem.containsAtLeast(u8, s, 2, &quot;o&quot;));
+}
+
+test &quot;分割・トリム&quot; {
+    var it = mem.splitScalar(u8, &quot;a,b,c&quot;, &#x27;,&#x27;);
+    try expectEqualStrings(&quot;a&quot;, it.next().?);
+    try expectEqualStrings(&quot;b&quot;, it.next().?);
+    try expectEqualStrings(&quot;c&quot;, it.next().?);
+    try expectEqual(null, it.next());
+
+    // 連続する区切りを 1 つとして扱う場合は tokenize
+    var tok = mem.tokenizeScalar(u8, &quot;  a   b  &quot;, &#x27; &#x27;);
+    try expectEqualStrings(&quot;a&quot;, tok.next().?);
+    try expectEqualStrings(&quot;b&quot;, tok.next().?);
+
+    try expectEqualStrings(&quot;x&quot;, mem.trim(u8, &quot;  x\n&quot;, &quot; \n&quot;));
+}
+
+test &quot;連結&quot; {
+    // コンパイル時なら ++ で連結できる
+    const s = &quot;foo&quot; ++ &quot;bar&quot;;
+    try expectEqualStrings(&quot;foobar&quot;, s);
+
+    // 実行時の連結はアロケータが必要
+    const gpa = testing.allocator;
+    const joined = try mem.concat(gpa, u8, &amp;.{ &quot;ab&quot;, &quot;cd&quot;, &quot;ef&quot; });
+    defer gpa.free(joined);
+    try expectEqualStrings(&quot;abcdef&quot;, joined);
+
+    const csv = try mem.join(gpa, &quot;,&quot;, &amp;.{ &quot;x&quot;, &quot;y&quot;, &quot;z&quot; });
+    defer gpa.free(csv);
+    try expectEqualStrings(&quot;x,y,z&quot;, csv);
+}
+
+test &quot;文字の種類&quot; {
+    try testing.expect(std.ascii.isDigit(&#x27;7&#x27;));
+    try testing.expect(std.ascii.isAlphabetic(&#x27;a&#x27;));
+    try expectEqual(&#x27;A&#x27;, std.ascii.toUpper(&#x27;a&#x27;));
+
+    var buf: [5]u8 = undefined;
+    const upper = std.ascii.upperString(&amp;buf, &quot;hello&quot;);
+    try expectEqualStrings(&quot;HELLO&quot;, upper);
+}
+
+test &quot;数値との変換&quot; {
+    try expectEqual(123, try std.fmt.parseInt(i32, &quot;123&quot;, 10));
+    try expectEqual(255, try std.fmt.parseInt(u8, &quot;ff&quot;, 16));
+    try testing.expectError(error.InvalidCharacter, std.fmt.parseInt(i32, &quot;12a&quot;, 10));
+    try expectEqual(1.5, try std.fmt.parseFloat(f64, &quot;1.5&quot;));
+}
+
+test &quot;UTF-8 を文字(コードポイント)単位で扱う&quot; {
+    const view = try std.unicode.Utf8View.init(&quot;日本語&quot;);
+    var it = view.iterator();
+    var n: usize = 0;
+    while (it.nextCodepoint()) |_| n += 1;
+    try expectEqual(3, n);
+}
+
+test &quot;複数行文字列リテラル&quot; {
+    const text =
+        \\1 行目
+        \\2 行目
+    ;
+    try expectEqualStrings(&quot;1 行目\n2 行目&quot;, text);
+}
+
+test &quot;書式指定&quot; {
+    var buf: [64]u8 = undefined;
+    const s = try std.fmt.bufPrint(&amp;buf, &quot;{s}|{d:&gt;5}|{x}|{b}|{d:.2}&quot;, .{ &quot;id&quot;, 42, 255, 5, 3.14159 });
+    try expectEqualStrings(&quot;id|   42|ff|101|3.14&quot;, s);
+}
+</code></pre></details></section><section id="c10"><p class="kicker">第 10 章 · 10_modules.zig</p><h2>ファイル分割・pub・モジュール</h2>
+<p class="lead">ファイル 1 つが 1 つの構造体(名前空間)になります。<code>@import</code> で取り込み、<code>pub</code> の付いた宣言だけが外から見えます。</p><ul><li><code>@import(&quot;file.zig&quot;)</code> でファイルを取り込む</li><li><code>pub</code> でないものは外部から使えない</li><li>トップレベル宣言は順不同で参照できる</li><li>import 先の <code>test</code> は <code>refAllDecls</code> で実行できる</li><li><code>@import(&quot;zig_practice&quot;)</code> のような名前は build.zig で登録したモジュール</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/10_modules.zig</code><button data-copy="zig test learn/10_modules.zig">コピー</button></div>
+<details open><summary>ソースコード全文(10_modules.zig)</summary><pre><code class="zig">//! 第 10 章(基本文法編): ファイル分割・pub・モジュール
+//!
+//! 実行: zig test learn/10_modules.zig
+//!
+//! - `@import(&quot;file.zig&quot;)` はそのファイルを 1 つの構造体として取り込む
+//! - `pub` を付けた宣言だけが外から見える
+//! - `@import(&quot;std&quot;)` のように名前だけのものは標準ライブラリや、
+//!   build.zig で登録したモジュール(例: このリポジトリの &quot;zig_practice&quot;)
+
+const std = @import(&quot;std&quot;);
+const helper = @import(&quot;10_modules_helper.zig&quot;);
+const expectEqual = std.testing.expectEqual;
+
+test &quot;import したファイルを使う&quot; {
+    try std.testing.expectEqualStrings(&quot;1.0&quot;, helper.version);
+
+    var buf: [64]u8 = undefined;
+    const msg = try helper.greet(&quot;Zig&quot;, &amp;buf);
+    try std.testing.expectEqualStrings(&quot;こんにちは、Zigさん&quot;, msg);
+
+    // helper.secret() は pub でないのでコンパイルエラーになる
+    try expectEqual(42, helper.reveal());
+}
+
+test &quot;import した型&quot; {
+    var c: helper.Counter = .{};
+    c.inc();
+    c.inc();
+    try expectEqual(2, c.count);
+}
+
+// ファイルの中の宣言は、順序に関係なく参照できる(トップレベルのみ)
+const answer = double(21);
+fn double(x: u32) u32 {
+    return x * 2;
+}
+
+test &quot;トップレベル宣言は順不同&quot; {
+    try expectEqual(42, answer);
+}
+
+// 名前空間としての struct。フィールドを持たない struct は単なるまとまりとして使える
+const math = struct {
+    pub const tau = 6.28;
+    pub fn square(x: i32) i32 {
+        return x * x;
+    }
+};
+
+test &quot;struct を名前空間として使う&quot; {
+    try expectEqual(9, math.square(3));
+}
+
+// インポートしたファイル内の test は、そのままでは走らない。
+// 全部走らせたいときは次のように書く。
+test {
+    std.testing.refAllDecls(helper);
+}
+</code></pre></details><details open><summary>補助ファイル(10_modules_helper.zig)</summary><pre><code class="zig">//! 第 10 章で import される補助ファイル。
+//! Zig ではファイル 1 つがそのまま 1 つの構造体(名前空間)です。
+
+const std = @import(&quot;std&quot;);
+
+/// `pub` が付いたものだけが外部から見える
+pub const version = &quot;1.0&quot;;
+
+pub fn greet(name: []const u8, buf: []u8) ![]const u8 {
+    return std.fmt.bufPrint(buf, &quot;こんにちは、{s}さん&quot;, .{name});
+}
+
+/// pub が付いていない関数は、このファイル内でしか使えない
+fn secret() u32 {
+    return 42;
+}
+
+pub fn reveal() u32 {
+    return secret();
+}
+
+pub const Counter = struct {
+    count: u32 = 0,
+
+    pub fn inc(self: *Counter) void {
+        self.count += 1;
+    }
+};
+
+test &quot;このファイルのテストは import 元から実行されない(必要なら refAllDecls を使う)&quot; {
+    try std.testing.expectEqual(42, secret());
+}
+</code></pre></details></section><section id="c11"><p class="kicker">第 11 章 · 11_testing.zig</p><h2>テスト</h2>
+<p class="lead"><code>test &quot;名前&quot; { ... }</code> はテスト用ビルドのときだけ実行されます。本体と同じファイルに書くのが流儀です。</p><ul><li><code>expectEqual</code> は第 1 引数が期待値</li><li><code>expectError</code> でエラーを検証</li><li><code>testing.allocator</code> がリークを検出</li><li><code>--test-filter</code> で名前に一致するテストだけ実行</li><li>プロジェクトでは <code>zig build test</code> で実行</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/11_testing.zig</code><button data-copy="zig test learn/11_testing.zig">コピー</button></div>
+<details open><summary>ソースコード全文(11_testing.zig)</summary><pre><code class="zig">//! 第 11 章(基本文法編): テスト
+//!
+//! 実行: zig test learn/11_testing.zig
+//!
+//! `test &quot;名前&quot; { ... }` はテスト用ビルドのときだけコンパイル・実行されます。
+//! 本体のコードと同じファイルに書くのが Zig の流儀です。
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+
+fn clamp(x: i32, lo: i32, hi: i32) i32 {
+    return @max(lo, @min(x, hi));
+}
+
+test &quot;expectEqual: 期待値が左&quot; {
+    // 第 1 引数が期待値、第 2 引数が実際の値
+    try testing.expectEqual(5, clamp(5, 0, 10));
+    try testing.expectEqual(0, clamp(-3, 0, 10));
+    try testing.expectEqual(10, clamp(99, 0, 10));
+}
+
+test &quot;いろいろな expect&quot; {
+    try testing.expect(1 + 1 == 2);
+    try testing.expectEqualStrings(&quot;abc&quot;, &quot;abc&quot;);
+    try testing.expectEqualSlices(u8, &amp;.{ 1, 2 }, &amp;.{ 1, 2 });
+    try testing.expectApproxEqAbs(@as(f64, 0.3), 0.1 + 0.2, 1e-9);
+    try testing.expectError(error.Boom, fails());
+}
+
+fn fails() !void {
+    return error.Boom;
+}
+
+test &quot;メモリリークの検出&quot; {
+    // testing.allocator は解放漏れをテスト失敗として報告する
+    const gpa = testing.allocator;
+    const buf = try gpa.alloc(u8, 8);
+    defer gpa.free(buf);
+}
+
+test &quot;テスト内ではエラーを try で伝播できる&quot; {
+    // テストが error を返せば失敗扱いになる
+    const v = try std.fmt.parseInt(i32, &quot;42&quot;, 10);
+    try testing.expectEqual(42, v);
+}
+
+const Stack = struct {
+    items: [4]i32 = undefined,
+    len: usize = 0,
+
+    fn push(self: *Stack, v: i32) !void {
+        if (self.len == self.items.len) return error.Full;
+        self.items[self.len] = v;
+        self.len += 1;
+    }
+
+    fn pop(self: *Stack) ?i32 {
+        if (self.len == 0) return null;
+        self.len -= 1;
+        return self.items[self.len];
+    }
+};
+
+test &quot;Stack: 正常系&quot; {
+    var s: Stack = .{};
+    try s.push(1);
+    try s.push(2);
+    try testing.expectEqual(2, s.pop());
+    try testing.expectEqual(1, s.pop());
+    try testing.expectEqual(null, s.pop());
+}
+
+test &quot;Stack: 満杯でエラー&quot; {
+    var s: Stack = .{};
+    for (0..4) |i| try s.push(@intCast(i));
+    try testing.expectError(error.Full, s.push(99));
+}
+
+// コンパイル時の検査: 条件が偽ならコンパイルエラー
+comptime {
+    std.debug.assert(@sizeOf(u32) == 4);
+}
+
+test &quot;テストを選んで実行する&quot; {
+    // zig test learn/11_testing.zig --test-filter &quot;Stack&quot;
+    // のように、名前に部分一致するテストだけを走らせられる
+    try testing.expect(true);
+}
+
+// プロジェクトでは `zig build test` で実行する(build.zig の test step)。
+// `zig build test --summary all` で件数も表示できる。
+</code></pre></details></section><section id="c12"><p class="kicker">第 12 章 · 12_control_flow.zig</p><h2>制御構文の発展</h2>
+<p class="lead">Zig は「値を取り出しながら分岐する」キャプチャ構文が一貫しています。</p><ul><li><code>if</code> / <code>while</code> で optional・error union をキャプチャ</li><li><code>switch</code> で union の中身やポインタを取り出す</li><li><code>inline for</code> はコンパイル時に展開される</li><li>ラベル付き <code>break :outer</code> / <code>continue :outer</code></li><li><code>for ... else</code> は式として値を返せる</li></ul>
+<div class="run"><span>実行</span><code>zig test learn/12_control_flow.zig</code><button data-copy="zig test learn/12_control_flow.zig">コピー</button></div>
+<details open><summary>ソースコード全文(12_control_flow.zig)</summary><pre><code class="zig">//! 第 12 章(基本文法編): 制御構文の発展
+//!
+//! 実行: zig test learn/12_control_flow.zig
+//!
+//! 第 2・3・5 章で扱った構文の応用編です。Zig は「値を取り出しながら分岐する」
+//! 書き方(キャプチャ)が一貫しています。
+
+const std = @import(&quot;std&quot;);
+const testing = std.testing;
+const expectEqual = testing.expectEqual;
+
+test &quot;if でキャプチャ: optional / error union&quot; {
+    const maybe: ?i32 = 5;
+    if (maybe) |v| {
+        try expectEqual(5, v);
+    } else {
+        return error.TestUnexpectedResult;
+    }
+
+    const r: anyerror!i32 = 7;
+    if (r) |v| {
+        try expectEqual(7, v);
+    } else |err| {
+        return err;
+    }
+}
+
+test &quot;while でキャプチャ: null になるまで繰り返す&quot; {
+    var it = std.mem.splitScalar(u8, &quot;x y z&quot;, &#x27; &#x27;);
+    var n: usize = 0;
+    while (it.next()) |_| n += 1;
+    try expectEqual(3, n);
+}
+
+test &quot;switch の発展: 範囲・複数値・式&quot; {
+    const x: u8 = &#x27;k&#x27;;
+    const kind = switch (x) {
+        &#x27;a&#x27;...&#x27;z&#x27; =&gt; &quot;小文字&quot;,
+        &#x27;A&#x27;...&#x27;Z&#x27; =&gt; &quot;大文字&quot;,
+        &#x27;0&#x27;...&#x27;9&#x27; =&gt; &quot;数字&quot;,
+        &#x27; &#x27;, &#x27;\t&#x27;, &#x27;\n&#x27; =&gt; &quot;空白&quot;,
+        else =&gt; &quot;その他&quot;,
+    };
+    try testing.expectEqualStrings(&quot;小文字&quot;, kind);
+}
+
+const Token = union(enum) {
+    number: i32,
+    plus,
+    minus,
+    ident: []const u8,
+};
+
+test &quot;switch で union の中身を取り出す&quot; {
+    const tokens = [_]Token{ .{ .number = 3 }, .plus, .{ .ident = &quot;x&quot; } };
+    var nums: i32 = 0;
+    var others: u32 = 0;
+    for (tokens) |t| {
+        switch (t) {
+            .number =&gt; |n| nums += n,
+            .plus, .minus =&gt; others += 1,
+            .ident =&gt; |name| others += @intCast(name.len),
+        }
+    }
+    try expectEqual(3, nums);
+    try expectEqual(2, others);
+}
+
+test &quot;switch でポインタキャプチャ(中身を書き換える)&quot; {
+    var t: Token = .{ .number = 1 };
+    switch (t) {
+        .number =&gt; |*n| n.* += 10,
+        else =&gt; {},
+    }
+    try expectEqual(11, t.number);
+}
+
+test &quot;inline for / comptime での繰り返し&quot; {
+    // inline for はコンパイル時に展開される。型の異なる要素も回せる
+    const values = .{ @as(u8, 1), @as(i32, -2), @as(f32, 0.5) };
+    var count: usize = 0;
+    inline for (values) |v| {
+        _ = v;
+        count += 1;
+    }
+    try expectEqual(3, count);
+}
+
+test &quot;複数のスライスを同時に回す&quot; {
+    const a = [_]i32{ 1, 2, 3 };
+    const b = [_]i32{ 10, 20, 30 };
+    var dot: i32 = 0;
+    for (a, b) |x, y| dot += x * y; // 長さが違うと panic
+    try expectEqual(140, dot);
+}
+
+test &quot;ラベル付き break / continue&quot; {
+    var found: ?struct { usize, usize } = null;
+    outer: for (0..5) |i| {
+        for (0..5) |j| {
+            if (i * j == 6) {
+                found = .{ i, j };
+                break :outer; // 外側のループまで抜ける
+            }
+            if (j &gt; i) continue :outer;
+        }
+    }
+    try expectEqual(2, found.?[0]);
+    try expectEqual(3, found.?[1]);
+}
+
+test &quot;else 付きの for / while は式として値を返せる&quot; {
+    const items = [_]i32{ 1, 3, 5 };
+    const first_even: ?i32 = for (items) |v| {
+        if (@mod(v, 2) == 0) break v;
+    } else null;
+    try expectEqual(null, first_even);
+}
+
+test &quot;unreachable と @panic&quot; {
+    // 「ここには来ない」と表明する。Debug では到達すると panic
+    const x: u8 = 3;
+    const r = switch (x) {
+        0...5 =&gt; &quot;small&quot;,
+        else =&gt; unreachable,
+    };
+    try testing.expectEqualStrings(&quot;small&quot;, r);
+}
+</code></pre></details></section></main></div><script>
+const KW=/^(const|var|fn|pub|try|catch|if|else|while|for|switch|return|defer|errdefer|break|continue|struct|enum|union|error|comptime|orelse|test|and|or|undefined|null|true|false|anytype|usingnamespace)$/;
+const TY=/^(u\d+|i\d+|f\d+|bool|void|type|usize|isize|noreturn|anyerror)$/;
+document.querySelectorAll('code.zig').forEach(el=>{
+ const re=/(\/\/[^\n]*)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')|(@?[A-Za-z_][A-Za-z0-9_]*)|(\b\d[\d_.xa-fA-F]*)/g;
+ const src=el.textContent;let out='',last=0,m;
+ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ while((m=re.exec(src))){out+=esc(src.slice(last,m.index));last=re.lastIndex;
+  if(m[1])out+='<span class="c">'+esc(m[1])+'</span>';
+  else if(m[2])out+='<span class="s">'+esc(m[2])+'</span>';
+  else if(m[3]){const w=m[3];out+=w[0]=='@'?'<span class="n">'+w+'</span>':KW.test(w)?'<span class="k">'+w+'</span>':TY.test(w)?'<span class="t">'+w+'</span>':w}
+  else out+='<span class="n">'+m[4]+'</span>'}
+ el.innerHTML=out+esc(src.slice(last))});
+document.querySelectorAll('button[data-copy]').forEach(b=>b.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy);b.textContent='コピーしました';setTimeout(()=>b.textContent='コピー',1500)});
+</script></body></html>
