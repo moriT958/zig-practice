@@ -1,0 +1,10 @@
+# Zig build cache and outputs
+.zig-cache/
+zig-cache/
+zig-out/
+
+# Project-local package directory
+zig-pkg/
+
+# OS / editor files
+.DS_Store
